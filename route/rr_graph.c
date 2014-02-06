@@ -15,6 +15,7 @@
 #include "vpr_utils.h"
 #include "read_xml_arch_file.h"
 #include "ReadOptions.h"
+#include "rr_graph_multi.h"
 
 /* #define ENABLE_DUMP */
 /* #define MUX_SIZE_DIST_DISPLAY */
@@ -427,6 +428,14 @@ void build_rr_graph(INP t_graph_type graph_type, INP int L_num_types,
 		dump_rr_graph(getEchoFileName(E_ECHO_RR_GRAPH));
 	} else
 		;
+
+#ifdef INTERPOSER_BASED_ARCHITECTURE
+	/* Main Entry Point to rr_graph modifications for interposer-based architectures */
+	if(num_cuts > 0)
+	{
+		modify_rr_graph_for_interposer_based_arch(nodes_per_chan, directionality);
+	}
+#endif
 
 	check_rr_graph(graph_type, types, L_nx, L_ny, nodes_per_chan, Fs,
 			num_seg_types, num_switches, segment_inf, global_route_switch,

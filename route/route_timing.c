@@ -29,6 +29,11 @@ static void timing_driven_expand_neighbours(struct s_heap *current, int inet,
 static float get_timing_driven_expected_cost(int inode, int target_node,
 		float criticality_fac, float R_upstream);
 
+#ifdef INTERPOSER_BASED_ARCHITECTURE
+static int get_num_expected_interposer_hops_to_target(int inode, int target_node);
+static double get_overused_ratio();
+#endif
+
 static int get_expected_segs_to_target(int inode, int target_node,
 		int *num_segs_ortho_dir_ptr);
 
@@ -162,6 +167,12 @@ boolean try_timing_driven_route(struct s_router_opts router_opts,
 				free(sinks);
 				return FALSE;
 			}
+
+#ifdef INTERPOSER_BASED_ARCHITECTURE
+//			vpr_printf(TIO_MESSAGE_INFO,"--------- ---------- -----------\n");
+//			vpr_printf(TIO_MESSAGE_INFO,"Iteration       Time   Crit Path\n");
+//			vpr_printf(TIO_MESSAGE_INFO,"--------- ---------- -----------\n");
+#endif
 		}
 
 		/* Make sure any CLB OPINs used up by subblocks being hooked directly     *
@@ -179,6 +190,63 @@ boolean try_timing_driven_route(struct s_router_opts router_opts,
 		 * going longer, trying to improve timing.  Think about this some.         */
 
 		success = feasible_routing();
+
+#ifdef INTERPOSER_BASED_ARCHITECTURE
+		/* Variables used to do the optimization of the routing, aborting visibly impossible Ws */
+		/* Threshold defined according to command line argument --routing_failure_predictor */
+		int times_exceeded_threshold = 0;
+
+		double overused_threshold = ROUTING_PREDICTOR_SAFE; /* Default */
+		if(router_opts.routing_failure_predictor == AGGRESSIVE)
+		{
+			overused_threshold = ROUTING_PREDICTOR_AGGRESSIVE;
+		}
+		if(router_opts.routing_failure_predictor == OFF)
+		{
+			overused_threshold = ROUTING_PREDICTOR_OFF;
+		}
+		
+
+		/* Verification to check the ratio of overused nodes, depending on the configuration
+		 * may abort the routing if the ratio is too high. */
+		double overused_ratio = get_overused_ratio();
+
+		/* Andre Pereira: The check splits the inverval in 3 intervals ([6,10), [10,20), [20,40)
+		 * The values before 6 are not considered, as the behaviour is not interesting
+		 * The threshold used is 4x, 2x, 1x overused_threshold, for each interval,
+		 * respectively.
+		 * The routing must exceed the threshold EXCEEDED_OVERUSED_COUNT_LIMIT (4, but might change)
+		 * times in order to abort the routing */
+		/* TODO: Add different configurations for the threshold: disabled, moderate, agressive */
+		if (itry > 5)
+		{
+			/* Using double comparisons here, but just for inequality and they are coarse,
+			 * I don't think tolerance needs to be used */
+			if (itry < 10 && overused_ratio >= 4.0*overused_threshold)
+			{
+				times_exceeded_threshold++;
+			}
+			else if (itry >= 10 && itry < 20 && overused_ratio >= 2.0*overused_threshold)
+			{
+				times_exceeded_threshold++;
+			}
+			else if (itry >= 20 && overused_ratio > overused_threshold)
+			{
+				times_exceeded_threshold++;
+			}
+			
+			if (times_exceeded_threshold >= EXCEEDED_OVERUSED_COUNT_LIMIT)
+			{
+				vpr_printf(TIO_MESSAGE_INFO, "Routing aborted, the ratio of overused nodes is above the threshold.\n");
+				free_timing_driven_route_structs(pin_criticality, sink_order, rt_node_of_sink);
+				free(net_index);
+				free(sinks);
+				return (FALSE);
+			}
+		}
+#endif
+
+
 		if (success) {
 			vpr_printf(TIO_MESSAGE_INFO, "Successfully routed after %d routing iterations.\n", itry);
 			free_timing_driven_route_structs(pin_criticality, sink_order, rt_node_of_sink);
@@ -275,6 +343,20 @@ void alloc_timing_driven_route_structs(float **pin_criticality_ptr,
 
 	alloc_route_tree_timing_structs();
 }
+
+#ifdef INTERPOSER_BASED_ARCHITECTURE
+/* This function gets ratio of overused nodes (overused_nodes / num_rr_nodes) */
+static double get_overused_ratio(){
+	double overused_nodes = 0.0;
+	int inode;
+	for(inode = 0; inode < num_rr_nodes; inode++){
+		if(rr_node[inode].occ > rr_node[inode].capacity)
+			overused_nodes += 1.0;
+	}
+	overused_nodes /= (double)num_rr_nodes;
+	return overused_nodes;
+}
+#endif
 
 void free_timing_driven_route_structs(float *pin_criticality, int *sink_order,
 		t_rt_node ** rt_node_of_sink) {
@@ -603,9 +685,19 @@ static float get_timing_driven_expected_cost(int inode, int target_node,
 	int cost_index, ortho_cost_index, num_segs_same_dir, num_segs_ortho_dir;
 	float expected_cost, cong_cost, Tdel;
 
+#ifdef INTERPOSER_BASED_ARCHITECTURE
+	int num_interposer_hops;
+	float interposer_hop_delay;
+#endif
+
 	rr_type = rr_node[inode].type;
 
 	if (rr_type == CHANX || rr_type == CHANY) {
+
+#ifdef INTERPOSER_BASED_ARCHITECTURE		
+		num_interposer_hops = get_num_expected_interposer_hops_to_target(inode, target_node);
+#endif
+
 		num_segs_same_dir = get_expected_segs_to_target(inode, target_node,
 				&num_segs_ortho_dir);
 		cost_index = rr_node[inode].cost_index;
@@ -633,6 +725,11 @@ static float get_timing_driven_expected_cost(int inode, int target_node,
 
 		Tdel += rr_indexed_data[IPIN_COST_INDEX].T_linear;
 
+#ifdef INTERPOSER_BASED_ARCHITECTURE
+		interposer_hop_delay = (float)delay_increase * 1e-12;
+		Tdel += num_interposer_hops * interposer_hop_delay;
+#endif
+
 		expected_cost = criticality_fac * Tdel
 				+ (1. - criticality_fac) * cong_cost;
 		return (expected_cost);
@@ -646,6 +743,96 @@ static float get_timing_driven_expected_cost(int inode, int target_node,
 		return (0.);
 	}
 }
+
+#ifdef INTERPOSER_BASED_ARCHITECTURE
+static int get_num_expected_interposer_hops_to_target(int inode, int target_node) 
+{
+	/* 
+	Description:
+		returns the expected number of times you have to cross the 
+		interposer in order to go from inode to target_node.
+		This does not include inode itself.
+	
+	Assumptions: 
+		1- Cuts are horizontal
+		2- target_node is a terminal pin (hence its ylow==yhigh)
+		3- wires that go through the interposer are uni-directional
+
+		---------	y=150
+		|		|
+		---------	y=100
+		|		|
+		---------	y=50
+		|		|
+		---------	y=0
+
+		num_cuts = 2, cut_step = 50, cut_locations = {50, 100}
+	*/
+	int y_start; /* start point y-coordinate. (y-coordinate at the *end* of wire 'i') */
+	int y_end;   /* destination (target) y-coordinate */
+	int cut_i, cut_step, y_cut_location, num_expected_hops;
+	t_rr_type rr_type;
+
+	num_expected_hops = 0;
+	cut_step = ny / (num_cuts + 1);
+
+	y_end   = rr_node[target_node].ylow; 
+	rr_type = rr_node[inode].type;
+
+	if(rr_type == CHANX) 
+	{	/* inode is a horizontal wire */
+		/* the ylow and yhigh are the same */
+		assert(rr_node[inode].ylow == rr_node[inode].yhigh);
+		y_start = rr_node[inode].ylow;
+	}
+	else
+	{	/* inode is a CHANY */
+		if(rr_node[inode].direction == INC_DIRECTION)
+		{
+			y_start = rr_node[inode].yhigh;
+		}
+		else if(rr_node[inode].direction == DEC_DIRECTION)
+		{
+			y_start = rr_node[inode].ylow;
+		}
+		else
+		{
+			/*	this means direction is BIDIRECTIONAL! Error out. */
+			y_start = -1;
+			assert(rr_node[inode].direction!=BI_DIRECTION);
+		}
+	}
+
+	/* for every cut, is it between 'i' and 'target'? */
+	for(cut_i=1 ; cut_i<=num_cuts; ++cut_i) 
+	{
+		y_cut_location = cut_i*cut_step;
+		if( (y_start < y_cut_location &&  y_cut_location < y_end) ||
+			(y_end   < y_cut_location &&  y_cut_location < y_start)) 
+		{
+			++num_expected_hops;
+		}
+	}
+
+	/* Make there is no off-by-1 error.For current node i: 
+	   if it's a vertical wire, node 'i' itself may be crossing the interposer.
+	*/
+	if(rr_type == CHANY)
+	{	
+		/* for every cut, does it cut wire 'i'? */
+		for(cut_i=1 ; cut_i<=num_cuts; ++cut_i) 
+		{
+			y_cut_location = cut_i*cut_step;
+			if(rr_node[inode].ylow < y_cut_location && y_cut_location < rr_node[inode].yhigh)
+			{
+				++num_expected_hops;
+			}
+		}
+	}
+
+	return num_expected_hops;
+}
+#endif
 
 /* Macro used below to ensure that fractions are rounded up, but floating   *
  * point values very close to an integer are rounded to that integer.       */

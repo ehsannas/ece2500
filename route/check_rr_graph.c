@@ -384,11 +384,22 @@ void check_node(int inode, enum e_route_type route_type) {
 			tracks_per_node = chan_width_y[xlow];
 		}
 
+#ifdef INTERPOSER_BASED_ARCHITECTURE
+		// in the interposer-based architectures, we are using [ptc_num..2*nodes_per_chan-1] for interposer nodes
+		if (ptc_num >= 2*nodes_per_chan)
+		{
+			vpr_printf(TIO_MESSAGE_ERROR, "in check_node: inode %d (type %d) has a ptc_num of %d.\n", 
+					inode, rr_type, ptc_num);
+			exit(1);
+		}
+#endif
+#ifndef INTERPOSER_BASED_ARCHITECTURE
 		if (ptc_num >= nodes_per_chan) {
 			vpr_printf(TIO_MESSAGE_ERROR, "in check_node: inode %d (type %d) has a ptc_num of %d.\n", 
 					inode, rr_type, ptc_num);
 			exit(1);
 		}
+#endif
 
 		if (capacity != tracks_per_node) {
 			vpr_printf(TIO_MESSAGE_ERROR, "in check_node: inode %d (type %d) has a capacity of %d.\n", 
