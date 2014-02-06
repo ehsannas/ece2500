@@ -484,46 +484,6 @@ void build_rr_graph(INP t_graph_type graph_type, INP int L_num_types,
 	if(clb_to_clb_directs != NULL) {
 		free(clb_to_clb_directs);
 	}
-
-
-	// Ehsan: DEBUG print RR_GRAPH
-	FILE* fp = my_fopen("before_cutting.txt", "w", 0);
-	int iedge, inode, dst_node;
-	for(inode=0; inode<num_rr_nodes;++inode)
-	{
-		for(iedge = 0; iedge < rr_node[inode].num_edges; iedge++)
-		{
-			dst_node = rr_node[inode].edges[iedge];
-			if (dst_node==-1)
-				continue;
-
-			char* type[7] = {"SOURCE", "SINK", "IPIN", "OPIN", "CHANX", "CHANY", "INTRA_CLUSTER_EDGE"};
-
-			const char* inode_dir = (rr_node[inode].direction == INC_DIRECTION) ? "INC" : "DEC";
-			const char* dst_node_dir = (rr_node[dst_node].direction == INC_DIRECTION) ? "INC" : "DEC";
-
-			fprintf(fp, "(%s,%d,%d,%d,%d,%d,%s) \t ", type[rr_node[inode].type], inode, rr_node[inode].xlow, rr_node[inode].xhigh, rr_node[inode].ylow, rr_node[inode].yhigh, inode_dir );
-			fprintf(fp, "(%s,%d,%d,%d,%d,%d,%s) \t ", type[rr_node[dst_node].type], dst_node, rr_node[dst_node].xlow, rr_node[dst_node].xhigh, rr_node[dst_node].ylow, rr_node[dst_node].yhigh, dst_node_dir );
-
-			int switch_index = rr_node[inode].switches[iedge];
-			fprintf(fp, "switch_delay[%d]=%g\n",switch_index, switch_inf[switch_index].Tdel);
-
-			int src_ylow = rr_node[inode].ylow;
-			int src_yhigh = rr_node[inode].yhigh;
-			int dst_ylow = rr_node[dst_node].ylow;
-			int dst_yhigh = rr_node[dst_node].yhigh;
-
-			if( dst_ylow <= 6 && 6 < dst_yhigh && src_ylow < 6 && rr_node[dst_node].direction == DEC_DIRECTION && rr_node[dst_node].type == CHANY && rr_node[inode].type == CHANX)
-				fprintf(fp, "found the bitch: src=%d dst=%d\n",inode,dst_node);
-			if( dst_ylow <= 12 && 12 < dst_yhigh && src_ylow < 12 && rr_node[dst_node].direction == DEC_DIRECTION && rr_node[dst_node].type == CHANY && rr_node[inode].type == CHANX)
-				fprintf(fp, "found the bitch: src=%d dst=%d\n",inode,dst_node);
-			if( dst_ylow <= 18 && 18 < dst_yhigh && src_ylow < 18 && rr_node[dst_node].direction == DEC_DIRECTION && rr_node[dst_node].type == CHANY && rr_node[inode].type == CHANX)
-				fprintf(fp, "found the bitch: src=%d dst=%d\n",inode,dst_node);
-
-		}
-	}
-
-
 }
 
 static void rr_graph_externals(t_timing_inf timing_inf,
