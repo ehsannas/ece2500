@@ -35,6 +35,8 @@ static char **ReadRouterAlgorithm(INP char **Args,
 		OUTP enum e_router_algorithm *Algo);
 static char **ReadPackerAlgorithm(INP char **Args,
 		OUTP enum e_packer_algorithm *Algo);
+static char **ReadRoutingPredictor(INP char **Args,
+		OUTP enum e_routing_failure_predictor *RoutingPred);
 static char **ReadBaseCostType(INP char **Args,
 		OUTP enum e_base_cost_type *BaseCostType);
 static char **ReadRouteType(INP char **Args, OUTP enum e_route_type *Type);
@@ -455,6 +457,16 @@ ProcessOption(INP char **Args, INOUTP t_options * Options) {
 		return ReadRouterAlgorithm(Args, &Options->RouterAlgorithm);
 	case OT_BASE_COST_TYPE:
 		return ReadBaseCostType(Args, &Options->base_cost_type);
+	case OT_PERCENT_WIRES_CUT:
+		return ReadInt(Args, &Options->percent_wires_cut);
+	case OT_NUM_CUTS:
+		return ReadInt(Args, &Options->num_cuts);
+	case OT_DELAY_INCREASE:
+		return ReadInt(Args, &Options->delay_increase);
+	case OT_PLACER_COST_CONSTANT:
+		return ReadFloat(Args, &Options->placer_cost_constant);
+	case OT_CONSTANT_TYPE:
+		return ReadInt(Args, &Options->constant_type);
 
 		/* Routing options valid only for timing-driven routing */
 	case OT_ASTAR_FAC:
@@ -463,6 +475,8 @@ ProcessOption(INP char **Args, INOUTP t_options * Options) {
 		return ReadFloat(Args, &Options->max_criticality);
 	case OT_CRITICALITY_EXP:
 		return ReadFloat(Args, &Options->criticality_exp);
+	case OT_ROUTING_FAILURE_PREDICTOR:
+		return ReadRoutingPredictor(Args, &Options->routing_failure_predictor);
 
 		/* Power options */
 	case OT_POWER:
@@ -797,6 +811,7 @@ ReadPackerAlgorithm(INP char **Args, OUTP enum e_packer_algorithm *Algo) {
 	return Args;
 }
 
+
 static char **
 ReadRouterAlgorithm(INP char **Args, OUTP enum e_router_algorithm *Algo) {
 	enum e_OptionArgToken Token;
@@ -813,6 +828,30 @@ ReadRouterAlgorithm(INP char **Args, OUTP enum e_router_algorithm *Algo) {
 		break;
 	case OT_TIMING_DRIVEN:
 		*Algo = TIMING_DRIVEN;
+		break;
+	default:
+		Error(*PrevArgs);
+	}
+
+	return Args;
+}
+
+static char **
+ReadRoutingPredictor(INP char **Args, OUTP enum e_routing_failure_predictor *RoutingPred) {
+	enum e_OptionArgToken Token;
+	char **PrevArgs;
+
+	PrevArgs = Args;
+	Args = ReadToken(Args, &Token);
+	switch (Token) {
+	case OT_OFF:
+		*RoutingPred = OFF;
+		break;
+	case OT_ROUTING_FAILURE_SAFE:
+		*RoutingPred = SAFE;
+		break;
+	case OT_ROUTING_FAILURE_AGGRESSIVE:
+		*RoutingPred = AGGRESSIVE;
 		break;
 	default:
 		Error(*PrevArgs);

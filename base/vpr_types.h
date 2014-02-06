@@ -92,6 +92,15 @@ typedef size_t bitfield;
 
 #define EMPTY -1
 
+// This will ENABLE/DISABLE interposer-based architecture code
+#define INTERPOSER_BASED_ARCHITECTURE
+
+/* Andre Pereira: Constants used at the routing failure predictor */
+#define EXCEEDED_OVERUSED_COUNT_LIMIT 4 /* The number of times the overused ratio has to exceed the threshold before the routing is aborted */
+#define ROUTING_PREDICTOR_SAFE 0.025
+#define ROUTING_PREDICTOR_AGGRESSIVE 0.010
+#define ROUTING_PREDICTOR_OFF 1.100 /* Values can never get past 1.0, so 1.1 is unachievable */
+
 /*******************************************************************************
  * Packing specific data types and constants
  * Packing takes the circuit described in the technology mapped user netlist
@@ -691,6 +700,9 @@ enum e_router_algorithm {
 enum e_base_cost_type {
 	INTRINSIC_DELAY, DELAY_NORMALIZED, DEMAND_ONLY
 };
+enum e_routing_failure_predictor {
+	OFF, SAFE, AGGRESSIVE
+};
 
 #define NO_FIXED_CHANNEL_WIDTH -1
 
@@ -713,6 +725,7 @@ struct s_router_opts {
 	boolean verify_binary_search;
 	boolean full_stats;
 	boolean doRouting;
+	enum e_routing_failure_predictor routing_failure_predictor;
 };
 
 /* All the parameters controlling the router's operation are in this        *

@@ -129,6 +129,16 @@ void vpr_print_usage(void) {
 	vpr_printf(TIO_MESSAGE_INFO, "\t[--td_place_exp_first <float>]\n");
 	vpr_printf(TIO_MESSAGE_INFO, "\t[--td_place_exp_last <float>]\n");
 	vpr_printf(TIO_MESSAGE_INFO, "\n");
+
+#ifdef INTERPOSER_BASED_ARCHITECTURE
+	vpr_printf(TIO_MESSAGE_INFO, "\t[--percent_wires_cut <int>]\n");
+	vpr_printf(TIO_MESSAGE_INFO, "\t[--num_cuts <int>]\n");
+	vpr_printf(TIO_MESSAGE_INFO, "\t[--delay_increase <int>]\n");
+	vpr_printf(TIO_MESSAGE_INFO, "\t[--placer_cost_constant <float>]\n");
+	vpr_printf(TIO_MESSAGE_INFO, "\n");
+#endif
+
+	vpr_printf(TIO_MESSAGE_INFO, "\n");
 	vpr_printf(TIO_MESSAGE_INFO,
 			"Router Options:  [-max_router_iterations <int>] [-bb_factor <int>]\n");
 	vpr_printf(TIO_MESSAGE_INFO,
@@ -149,6 +159,11 @@ void vpr_print_usage(void) {
 	vpr_printf(TIO_MESSAGE_INFO,
 			"\t[--astar_fac <float>] [--max_criticality <float>]\n");
 	vpr_printf(TIO_MESSAGE_INFO, "\t[--criticality_exp <float>]\n");
+
+#ifdef INTERPOSER_BASED_ARCHITECTURE
+	vpr_printf(TIO_MESSAGE_INFO, "\t[--routing_failure_predictor safe | aggressive | off]\n");
+#endif
+
 	vpr_printf(TIO_MESSAGE_INFO, "\n");
 }
 
