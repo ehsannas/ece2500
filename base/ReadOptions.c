@@ -35,8 +35,12 @@ static char **ReadRouterAlgorithm(INP char **Args,
 		OUTP enum e_router_algorithm *Algo);
 static char **ReadPackerAlgorithm(INP char **Args,
 		OUTP enum e_packer_algorithm *Algo);
-static char **ReadRoutingPredictor(INP char **Args,
+
+#ifdef INTERPOSER_BASED_ARCHITECTURE
+	static char **ReadRoutingPredictor(INP char **Args,
 		OUTP enum e_routing_failure_predictor *RoutingPred);
+#endif
+
 static char **ReadBaseCostType(INP char **Args,
 		OUTP enum e_base_cost_type *BaseCostType);
 static char **ReadRouteType(INP char **Args, OUTP enum e_route_type *Type);
@@ -457,6 +461,8 @@ ProcessOption(INP char **Args, INOUTP t_options * Options) {
 		return ReadRouterAlgorithm(Args, &Options->RouterAlgorithm);
 	case OT_BASE_COST_TYPE:
 		return ReadBaseCostType(Args, &Options->base_cost_type);
+
+#ifdef INTERPOSER_BASED_ARCHITECTURE
 	case OT_PERCENT_WIRES_CUT:
 		return ReadInt(Args, &Options->percent_wires_cut);
 	case OT_NUM_CUTS:
@@ -467,6 +473,9 @@ ProcessOption(INP char **Args, INOUTP t_options * Options) {
 		return ReadFloat(Args, &Options->placer_cost_constant);
 	case OT_CONSTANT_TYPE:
 		return ReadInt(Args, &Options->constant_type);
+	case OT_ROUTING_FAILURE_PREDICTOR:
+		return ReadRoutingPredictor(Args, &Options->routing_failure_predictor);
+#endif
 
 		/* Routing options valid only for timing-driven routing */
 	case OT_ASTAR_FAC:
@@ -475,8 +484,6 @@ ProcessOption(INP char **Args, INOUTP t_options * Options) {
 		return ReadFloat(Args, &Options->max_criticality);
 	case OT_CRITICALITY_EXP:
 		return ReadFloat(Args, &Options->criticality_exp);
-	case OT_ROUTING_FAILURE_PREDICTOR:
-		return ReadRoutingPredictor(Args, &Options->routing_failure_predictor);
 
 		/* Power options */
 	case OT_POWER:
@@ -836,6 +843,7 @@ ReadRouterAlgorithm(INP char **Args, OUTP enum e_router_algorithm *Algo) {
 	return Args;
 }
 
+#ifdef INTERPOSER_BASED_ARCHITECTURE
 static char **
 ReadRoutingPredictor(INP char **Args, OUTP enum e_routing_failure_predictor *RoutingPred) {
 	enum e_OptionArgToken Token;
@@ -859,6 +867,7 @@ ReadRoutingPredictor(INP char **Args, OUTP enum e_routing_failure_predictor *Rou
 
 	return Args;
 }
+#endif
 
 static char **
 ReadBaseCostType(INP char **Args, OUTP enum e_base_cost_type *BaseCostType) {

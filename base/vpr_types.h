@@ -33,6 +33,10 @@
 // ehsan
 #define NO_GRAPHICS
 
+// This will ENABLE interposer-based architecture code
+#define INTERPOSER_BASED_ARCHITECTURE
+
+
 #ifndef VPR_TYPES_H
 #define VPR_TYPES_H
 
@@ -92,14 +96,13 @@ typedef size_t bitfield;
 
 #define EMPTY -1
 
-// This will ENABLE/DISABLE interposer-based architecture code
-#define INTERPOSER_BASED_ARCHITECTURE
-
+#ifdef INTERPOSER_BASED_ARCHITECTURE
 /* Andre Pereira: Constants used at the routing failure predictor */
 #define EXCEEDED_OVERUSED_COUNT_LIMIT 4 /* The number of times the overused ratio has to exceed the threshold before the routing is aborted */
 #define ROUTING_PREDICTOR_SAFE 0.025
 #define ROUTING_PREDICTOR_AGGRESSIVE 0.010
 #define ROUTING_PREDICTOR_OFF 1.100 /* Values can never get past 1.0, so 1.1 is unachievable */
+#endif
 
 /*******************************************************************************
  * Packing specific data types and constants

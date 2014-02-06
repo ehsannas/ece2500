@@ -74,12 +74,16 @@ struct s_TokenPair OptionBaseTokenList[] = {
 		{ "power_output_file", OT_POWER_OUT_FILE }, /* Output file for power results */
 		{ "power", OT_POWER }, /* Run power estimation? */
 		{ "tech_properties", OT_CMOS_TECH_BEHAVIOR_FILE }, /* Technology properties */
+
+#ifdef INTERPOSER_BASED_ARCHITECTURE
 		{ "routing_failure_predictor", OT_ROUTING_FAILURE_PREDICTOR }, /* Routing failure predictor */
 		{ "percent_wires_cut", OT_PERCENT_WIRES_CUT },
 		{ "num_cuts", OT_NUM_CUTS },
 		{ "delay_increase", OT_DELAY_INCREASE },
 		{ "placer_cost_constant", OT_PLACER_COST_CONSTANT },
 		{ "constant_type", OT_CONSTANT_TYPE },
+#endif
+
 		{ NULL, OT_BASE_UNKNOWN } /* End of list marker */
 };
 
@@ -103,7 +107,10 @@ struct s_TokenPair OptionArgTokenList[] = {
 		{ "greedy", OT_GREEDY }, 
 		{ "lp", OT_LP }, 
 		{ "brute_force", OT_BRUTE_FORCE },
+
+#ifdef INTERPOSER_BASED_ARCHITECTURE
 		{ "safe", OT_ROUTING_FAILURE_SAFE },
 		{ "aggressive", OT_ROUTING_FAILURE_AGGRESSIVE },
+#endif
 		{ NULL, OT_BASE_UNKNOWN } /* End of list marker */
 };
